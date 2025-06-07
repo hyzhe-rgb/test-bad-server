@@ -21,6 +21,10 @@ export default function MainApp() {
     setCurrentChat(chat);
   };
 
+  const handleBack = () => {
+    setCurrentChat(null);
+  };
+
   const startCall = (type: "voice" | "video") => {
     if (!currentChat) return;
     
@@ -38,18 +42,23 @@ export default function MainApp() {
   };
 
   return (
-    <div className="h-screen flex bg-white dark:bg-gray-900 transition-colors duration-200">
-      <Sidebar
-        onOpenChat={openChat}
-        currentChat={currentChat}
-        onShowMenu={() => setShowMenu(true)}
-        onShowSettings={() => setShowSettings(true)}
-      />
+    <div className="h-screen flex flex-col sm:flex-row bg-white dark:bg-gray-900 transition-colors duration-200">
+      <div className={`${currentChat ? 'hidden sm:block' : 'block'} sm:flex-shrink-0`}>
+        <Sidebar
+          onOpenChat={openChat}
+          currentChat={currentChat}
+          onShowMenu={() => setShowMenu(true)}
+          onShowSettings={() => setShowSettings(true)}
+        />
+      </div>
       
-      <ChatArea
-        currentChat={currentChat}
-        onStartCall={startCall}
-      />
+      <div className={`${currentChat ? 'block' : 'hidden sm:block'} flex-1`}>
+        <ChatArea
+          currentChat={currentChat}
+          onStartCall={startCall}
+          onBack={handleBack}
+        />
+      </div>
 
       <Modals
         showMenu={showMenu}

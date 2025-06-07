@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Phone, Video, MoreVertical } from "lucide-react";
+import { Phone, Video, MoreVertical, ArrowLeft } from "lucide-react";
 import MessageInput from "./MessageInput";
 import { formatTime } from "@/lib/telegram-utils";
 import { useTelegram } from "@/hooks/useTelegram";
@@ -10,41 +10,88 @@ import { useTelegram } from "@/hooks/useTelegram";
 interface ChatAreaProps {
   currentChat: any;
   onStartCall: (type: "voice" | "video") => void;
+  onBack?: () => void;
 }
 
-export default function ChatArea({ currentChat, onStartCall }: ChatAreaProps) {
+export default function ChatArea({ currentChat, onStartCall, onBack }: ChatAreaProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user } = useTelegram();
   const queryClient = useQueryClient();
 
-  const { data: messages = [], isLoading } = useQuery({
-    queryKey: ["/api/chats", currentChat?.id, "messages"],
-    enabled: !!currentChat?.id,
-  });
-
-  const sendMessageMutation = useMutation({
-    mutationFn: async (content: string) => {
-      const response = await fetch(`/api/chats/${currentChat.id}/messages`, {
+  // For direct messages with users, create or get existing chat
+  const createOrGetChatMutation = useMutation({
+    mutationFn: async (userId: number) => {
+      const response = await fetch("/api/chats", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${localStorage.getItem("telegram_session")}`,
         },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({
+          type: "private",
+          name: `Direct Chat`,
+          participants: [userId],
+        }),
       });
-      
+
       if (!response.ok) {
-        throw new Error("Failed to send message");
+        throw new Error("Failed to create chat");
       }
-      
+
       return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["/api/chats", currentChat.id, "messages"],
+  });
+
+  const chatId = currentChat?.id?.toString().startsWith('user-') ? 
+    null : currentChat?.id;
+
+  const { data: messages = [], isLoading } = useQuery({
+    queryKey: ["/api/chats", chatId, "messages"],
+    enabled: !!chatId,
+  });
+
+  const sendMessage = useMutation({
+    mutationFn: async (content: string) => {
+      const sessionId = localStorage.getItem("telegram_session");
+      if (!sessionId) {
+        throw new Error("No session found");
+      }
+
+      const response = await fetch(`/api/chats/${currentChat.id}/messages`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${sessionId}`,
+        },
+        body: JSON.stringify({ 
+          content: content.trim(),
+          messageType: "text"
+        }),
       });
-      queryClient.invalidateQueries({
-        queryKey: ["/api/chats"],
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to send message");
+      }
+      return response.json();
+    },
+    onSuccess: (newMessage) => {
+      // Immediately update the messages list
+      queryClient.invalidateQueries({ queryKey: [`/api/chats/${currentChat.id}/messages`] });
+
+      // Scroll to bottom
+      setTimeout(() => {
+        const messagesContainer = document.querySelector('[data-messages-container]');
+        if (messagesContainer) {
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+      }, 100);
+    },
+    onError: (error) => {
+      toast({
+        title: "Ошибка отправки",
+        description: error.message,
+        variant: "destructive",
       });
     },
   });
@@ -59,7 +106,7 @@ export default function ChatArea({ currentChat, onStartCall }: ChatAreaProps) {
 
   const handleSendMessage = (content: string) => {
     if (!currentChat || !content.trim()) return;
-    sendMessageMutation.mutate(content);
+    sendMessage.mutate(content);
   };
 
   const getAvatarFallback = (name: string) => {
@@ -93,21 +140,31 @@ export default function ChatArea({ currentChat, onStartCall }: ChatAreaProps) {
   return (
     <div className="flex-1 flex flex-col">
       {/* Chat Header */}
-      <div className="h-14 px-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between bg-white dark:bg-gray-800">
-        <div className="flex items-center space-x-3">
+      <div className="h-12 sm:h-14 px-2 sm:px-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between bg-white dark:bg-gray-800">
+        <div className="flex items-center space-x-2 sm:space-x-3">
+          {onBack && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onBack}
+              className="sm:hidden hover:bg-gray-100 dark:hover:bg-gray-700"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          )}
           <div className="relative">
-            <Avatar className="w-10 h-10">
+            <Avatar className="w-8 h-8 sm:w-10 sm:h-10">
               <AvatarImage src={currentChat.avatar} alt={currentChat.name} />
-              <AvatarFallback className="telegram-blue text-white text-sm">
+              <AvatarFallback className="telegram-blue text-white text-xs sm:text-sm">
                 {getAvatarFallback(currentChat.name)}
               </AvatarFallback>
             </Avatar>
             {currentChat.isOnline && (
-              <div className="absolute -bottom-1 -right-1 w-3 h-3 telegram-green rounded-full border-2 border-white dark:border-gray-800"></div>
+              <div className="absolute -bottom-1 -right-1 w-2 h-2 sm:w-3 sm:h-3 telegram-green rounded-full border-2 border-white dark:border-gray-800"></div>
             )}
           </div>
           <div>
-            <h2 className="font-medium text-gray-900 dark:text-white">
+            <h2 className="font-medium text-sm sm:text-base text-gray-900 dark:text-white">
               {currentChat.name}
             </h2>
             <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -115,100 +172,85 @@ export default function ChatArea({ currentChat, onStartCall }: ChatAreaProps) {
             </p>
           </div>
         </div>
-        
-        <div className="flex items-center space-x-2">
+
+        <div className="flex items-center space-x-1 sm:space-x-2">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => onStartCall("voice")}
-            className="hover:bg-gray-100 dark:hover:bg-gray-700"
+            className="hover:bg-gray-100 dark:hover:bg-gray-700 h-8 w-8 sm:h-10 sm:w-10"
           >
-            <Phone className="h-5 w-5" />
+            <Phone className="h-4 w-4 sm:h-5 sm:w-5" />
           </Button>
           <Button
             variant="ghost"
             size="icon"
             onClick={() => onStartCall("video")}
-            className="hover:bg-gray-100 dark:hover:bg-gray-700"
+            className="hover:bg-gray-100 dark:hover:bg-gray-700 h-8 w-8 sm:h-10 sm:w-10"
           >
-            <Video className="h-5 w-5" />
+            <Video className="h-4 w-4 sm:h-5 sm:w-5" />
           </Button>
           <Button
             variant="ghost"
             size="icon"
-            className="hover:bg-gray-100 dark:hover:bg-gray-700"
+            className="hover:bg-gray-100 dark:hover:bg-gray-700 h-8 w-8 sm:h-10 sm:w-10"
           >
-            <MoreVertical className="h-5 w-5" />
+            <MoreVertical className="h-4 w-4 sm:h-5 sm:w-5" />
           </Button>
         </div>
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto scrollbar-hide p-4 bg-gray-50 dark:bg-gray-900">
+      <div 
+        className="flex-1 overflow-y-auto p-4 space-y-3 pb-20 sm:pb-4" 
+        data-messages-container
+      >
         {isLoading ? (
-          <div className="flex justify-center items-center h-full">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 telegram-blue"></div>
+          <div className="flex items-center justify-center h-full">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+          </div>
+        ) : messages.length === 0 ? (
+          <div className="flex items-center justify-center h-full text-gray-500">
+            Начните общение
           </div>
         ) : (
-          <>
-            {messages.map((message: any) => {
-              const isOwn = message.senderId === user?.id;
-              return (
-                <div
-                  key={message.id}
-                  className={`flex mb-4 message-animation ${
-                    isOwn ? "justify-end" : "justify-start"
-                  }`}
-                >
-                  <div
-                    className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${
-                      isOwn
-                        ? "chat-bubble-sent text-white rounded-br-sm"
-                        : "chat-bubble-received text-gray-800 dark:text-white rounded-bl-sm"
-                    }`}
-                  >
-                    <div>{message.content}</div>
-                    <div
-                      className={`text-xs mt-1 flex items-center justify-end space-x-1 ${
-                        isOwn
-                          ? "text-white/70"
-                          : "text-gray-500 dark:text-gray-400"
-                      }`}
-                    >
-                      <span>{formatTime(message.createdAt)}</span>
-                      {isOwn && (
-                        <svg
-                          className="w-4 h-4"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                            clipRule="evenodd"
-                          />
-                          <path
-                            fillRule="evenodd"
-                            d="M19.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-1-1a1 1 0 111.414-1.414l.293.293 7.293-7.293a1 1 0 011.414 0z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-            <div ref={messagesEndRef} />
-          </>
+          messages.map((message: any) => (
+            <div
+              key={message.id}
+              className={`flex ${message.senderId === user?.id ? "justify-end" : "justify-start"} message-animation`}
+            >
+              <div
+                className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${
+                  message.senderId === user?.id
+                    ? "chat-bubble-sent text-white"
+                    : "chat-bubble-received text-gray-800 dark:text-white"
+                }`}
+              >
+                {message.senderId !== user?.id && (
+                  <p className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-1">
+                    {message.sender?.firstName || 'Пользователь'}
+                  </p>
+                )}
+                <p className="text-sm">{message.content}</p>
+                <p className="text-xs opacity-70 mt-1">
+                  {new Date(message.createdAt).toLocaleTimeString("ru-RU", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </p>
+              </div>
+            </div>
+          ))
         )}
       </div>
 
       {/* Message Input */}
-      <MessageInput
-        onSendMessage={handleSendMessage}
-        disabled={sendMessageMutation.isPending}
-      />
+      <div className="border-t border-gray-200 dark:border-gray-700">
+        <MessageInput
+          onSendMessage={handleSendMessage}
+          disabled={sendMessage.isPending || !currentChat}
+        />
+      </div>
     </div>
   );
 }

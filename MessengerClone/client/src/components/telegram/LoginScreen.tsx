@@ -9,9 +9,11 @@ import { useToast } from "@/hooks/use-toast";
 export default function LoginScreen() {
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
+  const [password, setPassword] = useState("");
   const [showCodeInput, setShowCodeInput] = useState(false);
+  const [showPasswordInput, setShowPasswordInput] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const { login, verifyCode } = useTelegram();
   const { toast } = useToast();
 
@@ -45,7 +47,7 @@ export default function LoginScreen() {
   };
 
   const handleVerifyCode = async () => {
-    if (code.length < 4) {
+    if (!code.trim()) {
       toast({
         title: "Ошибка",
         description: "Введите код подтверждения",
@@ -56,11 +58,90 @@ export default function LoginScreen() {
 
     setIsLoading(true);
     try {
+      const response = await fetch("/api/auth/verify", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ phone, code }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Неверный код");
+      }
+
+      const result = await response.json();
+      
+      // Сохраняем сессию временно
+      const tempSessionId = result.sessionId;
+      
+      // Проверяем, есть ли пароль для этого пользователя
+      const storedPassword = localStorage.getItem(`account_password_${phone}`);
+      if (storedPassword && storedPassword.trim() !== "") {
+        // Есть пароль - показываем поле ввода пароля
+        setShowPasswordInput(true);
+        setShowCodeInput(false);
+        localStorage.setItem("temp_session", tempSessionId);
+        toast({
+          title: "Введите пароль",
+          description: "Для входа в аккаунт требуется пароль",
+        });
+      } else {
+        // Нет пароля - завершаем вход
+        localStorage.setItem("telegram_session", tempSessionId);
+        await verifyCode(phone, code);
+        toast({
+          title: "Успешно",
+          description: "Вход выполнен",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Ошибка",
+        description: error.message || "Неверный код",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handlePasswordSubmit = async () => {
+    if (!password.trim()) {
+      toast({
+        title: "Ошибка",
+        description: "Введите пароль",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const storedPassword = localStorage.getItem(`account_password_${phone}`);
+    if (storedPassword !== password) {
+      toast({
+        title: "Ошибка",
+        description: "Неверный пароль",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Пароль верный - завершаем вход
+    setIsLoading(true);
+    try {
+      const tempSessionId = localStorage.getItem("temp_session");
+      localStorage.setItem("telegram_session", tempSessionId!);
+      localStorage.removeItem("temp_session");
+      
       await verifyCode(phone, code);
+      toast({
+        title: "Успешно",
+        description: "Вход выполнен",
+      });
     } catch (error) {
       toast({
         title: "Ошибка",
-        description: "Неверный код. Используйте 22222",
+        description: "Ошибка входа",
         variant: "destructive",
       });
     } finally {
@@ -95,7 +176,7 @@ export default function LoginScreen() {
             <h1 className="text-2xl font-bold text-gray-800 mb-2">Telegram</h1>
             <p className="text-gray-600">Войдите в свой аккаунт</p>
           </div>
-          
+
           <div className="space-y-4">
             <div>
               <Label htmlFor="phone" className="text-sm font-medium text-gray-700 mb-2">
@@ -113,7 +194,7 @@ export default function LoginScreen() {
                 autoFocus
               />
             </div>
-            
+
             {showCodeInput && (
               <div className="slide-in-left">
                 <Label htmlFor="code" className="text-sm font-medium text-gray-700 mb-2">
@@ -122,26 +203,44 @@ export default function LoginScreen() {
                 <Input
                   id="code"
                   type="text"
-                  placeholder="Введите код (22222)"
-                  maxLength={5}
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  className="text-center text-lg tracking-widest transition-all duration-200"
-                  autoFocus
+                  placeholder="Введите код"
+                  className="text-center text-lg tracking-widest"
+                  maxLength={6}
                 />
-                <p className="text-sm text-gray-500 mt-2">
-                  Мы отправили код на ваш номер
+                <p className="text-sm text-gray-600 mt-2">
+                  Мы отправили код на номер {phone}
                 </p>
               </div>
             )}
-            
+
+            {showPasswordInput && (
+              <div className="slide-in-left">
+                <Label htmlFor="password" className="text-sm font-medium text-gray-700 mb-2">
+                  Пароль
+                </Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyPress={(e) => e.key === "Enter" && handlePasswordSubmit()}
+                  placeholder="Введите пароль"
+                />
+                <p className="text-sm text-gray-600 mt-2">
+                  Введите пароль для входа в аккаунт
+                </p>
+              </div>
+            )}
+
             <Button
-              onClick={showCodeInput ? handleVerifyCode : handleSendCode}
-              className="w-full telegram-blue hover:telegram-light-blue text-white py-3 font-medium transition-all duration-200 transform hover:scale-105"
+              onClick={showPasswordInput ? handlePasswordSubmit : showCodeInput ? handleVerifyCode : handleSendCode}
               disabled={isLoading}
+              className="w-full telegram-blue hover:telegram-light-blue text-white py-3 font-medium transition-all duration-200 transform hover:scale-105"
             >
-              {isLoading ? "Загрузка..." : showCodeInput ? "Войти" : "Отправить код"}
+              {isLoading ? "Загрузка..." : showPasswordInput ? "Войти" : showCodeInput ? "Подтвердить" : "Отправить код"}
             </Button>
           </div>
         </CardContent>

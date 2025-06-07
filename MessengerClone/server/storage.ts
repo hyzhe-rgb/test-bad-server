@@ -107,8 +107,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getChatByUsername(username: string): Promise<Chat | undefined> {
-    const [chat] = await db.select().from(chats).where(eq(chats.username, username));
-    return chat || undefined;
+    try {
+      const [chat] = await db.select().from(chats).where(eq(chats.username, username));
+      return chat || undefined;
+    } catch (error) {
+      console.error("Error in getChatByUsername:", error);
+      return undefined;
+    }
   }
 
   async createChat(insertChat: InsertChat): Promise<Chat> {
