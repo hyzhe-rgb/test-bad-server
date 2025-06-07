@@ -39,29 +39,11 @@ export function TelegramProvider({ children }: TelegramProviderProps) {
     if (sessionId) {
       // Fetch user data
       fetchUser(sessionId);
-      // Connect to WebSocket immediately
-      connectWebSocket(sessionId);
     }
-
-    // Prevent session loss on page unload
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      // Keep session in localStorage
-      const currentSession = localStorage.getItem("telegram_session");
-      if (currentSession) {
-        console.log("Preserving session on page unload");
-      }
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
   }, []);
 
   const fetchUser = async (sessionId: string) => {
     try {
-      console.log("Fetching user data with session:", sessionId);
       const response = await fetch("/api/users/me", {
         headers: {
           "Authorization": `Bearer ${sessionId}`,
@@ -70,20 +52,13 @@ export function TelegramProvider({ children }: TelegramProviderProps) {
 
       if (response.ok) {
         const userData = await response.json();
-        console.log("User data fetched successfully:", userData);
         setUser(userData);
         setIsAuthenticated(true);
       } else {
-        console.error("Session invalid, clearing storage");
         localStorage.removeItem("telegram_session");
-        setUser(null);
-        setIsAuthenticated(false);
       }
     } catch (error) {
-      console.error("Failed to fetch user:", error);
       localStorage.removeItem("telegram_session");
-      setUser(null);
-      setIsAuthenticated(false);
     }
   };
 
@@ -118,7 +93,6 @@ export function TelegramProvider({ children }: TelegramProviderProps) {
     setUser(data.user);
     setIsAuthenticated(true);
     localStorage.setItem("telegram_session", data.sessionId);
-    localStorage.setItem("current_user_id", data.user.id.toString());
 
     // Connect to WebSocket
     connectWebSocket(data.sessionId);
@@ -162,51 +136,36 @@ export function TelegramProvider({ children }: TelegramProviderProps) {
   const connectWebSocket = (sessionId: string) => {
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const wsUrl = `${protocol}//${window.location.host}/ws?sessionId=${sessionId}`;
-
+    
     const socket = new WebSocket(wsUrl);
-
+    
     socket.onopen = () => {
       console.log("WebSocket connected");
     };
-
+    
     socket.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-
-        switch (data.type) {
-          case "new_message":
-            // Handle new message notification
-            toast({
-              title: `${data.message.sender.firstName}`,
-              description: data.message.content,
-            });
-            break;
-          case "incoming_call":
-            // Handle incoming call
-            toast({
-              title: "Входящий звонок",
-              description: "У вас входящий звонок",
-            });
-            break;
-        }
-      } catch (error) {
-        console.error("Error parsing WebSocket message:", error);
+      const data = JSON.parse(event.data);
+      
+      switch (data.type) {
+        case "new_message":
+          // Handle new message notification
+          toast({
+            title: `${data.message.sender.firstName}`,
+            description: data.message.content,
+          });
+          break;
+        case "incoming_call":
+          // Handle incoming call
+          toast({
+            title: "Входящий звонок",
+            description: "У вас входящий звонок",
+          });
+          break;
       }
     };
-
+    
     socket.onclose = () => {
       console.log("WebSocket disconnected");
-      // Попытка переподключения через 3 секунды
-      setTimeout(() => {
-        const currentSessionId = localStorage.getItem("telegram_session");
-        if (currentSessionId && isAuthenticated) {
-          connectWebSocket(currentSessionId);
-        }
-      }, 3000);
-    };
-
-    socket.onerror = (error) => {
-      console.error("WebSocket error:", error);
     };
   };
 

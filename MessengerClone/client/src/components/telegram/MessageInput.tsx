@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,7 +13,7 @@ export default function MessageInput({ onSendMessage, disabled }: MessageInputPr
 
   const handleSend = () => {
     if (!message.trim() || disabled) return;
-    onSendMessage(message.trim());
+    onSendMessage(message);
     setMessage("");
   };
 
@@ -26,12 +25,12 @@ export default function MessageInput({ onSendMessage, disabled }: MessageInputPr
   };
 
   return (
-    <div className="message-input-container">
-      <div className="flex items-end space-x-2 max-w-4xl mx-auto">
+    <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+      <div className="flex items-end space-x-3">
         <Button
           variant="ghost"
           size="icon"
-          className="text-gray-500 hover:text-blue-500 shrink-0"
+          className="text-gray-500 hover:text-blue-500"
         >
           <Paperclip className="h-5 w-5" />
         </Button>
@@ -41,15 +40,10 @@ export default function MessageInput({ onSendMessage, disabled }: MessageInputPr
             placeholder="Написать сообщение..."
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            onKeyDown={handleKeyPress}
+            onKeyPress={handleKeyPress}
             rows={1}
-            className="resize-none border-gray-300 dark:border-gray-600 rounded-2xl pr-12 transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[40px] max-h-32"
+            className="resize-none border-gray-300 dark:border-gray-600 rounded-2xl pr-12 transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             disabled={disabled}
-            style={{ 
-              height: 'auto',
-              minHeight: '40px',
-              maxHeight: '128px'
-            }}
           />
           <Button
             variant="ghost"
@@ -63,9 +57,9 @@ export default function MessageInput({ onSendMessage, disabled }: MessageInputPr
         <Button
           onClick={handleSend}
           disabled={!message.trim() || disabled}
-          className="telegram-blue hover:telegram-light-blue text-white rounded-full p-2 h-10 w-10 transition-all duration-200 transform hover:scale-105 shrink-0"
+          className="telegram-blue hover:telegram-light-blue text-white rounded-full p-2 h-10 w-10 transition-all duration-200 transform hover:scale-105"
         >
-          <Send className="h-4 w-4" />
+          <Send className="h-5 w-5" />
         </Button>
       </div>
     </div>

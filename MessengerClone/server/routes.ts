@@ -25,15 +25,15 @@ const sessions = new Map<string, number>();
 const wsConnections = new Map<number, WebSocket>();
 
 export async function registerRoutes(app: Express): Promise<Server> {
-
+  
   // Auth routes
   app.post("/api/auth/login", async (req, res) => {
     try {
       const { phone } = loginSchema.parse(req.body);
-
+      
       // In real app, send SMS code here
       // For demo, any phone number is accepted
-
+      
       res.json({ success: true, message: "Code sent" });
     } catch (error) {
       res.status(400).json({ message: "Invalid phone number" });
@@ -43,7 +43,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/verify", async (req, res) => {
     try {
       const { phone, code } = verifyCodeSchema.parse(req.body);
-
+      
       // Accept code 22222 or any 4+ digit code
       if (code !== "22222" && code.length < 4) {
         return res.status(400).json({ message: "Invalid code" });
@@ -51,7 +51,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Check if user exists
       let user = await storage.getUserByPhone(phone);
-
+      
       if (!user) {
         // Create new user
         const firstName = "User";
@@ -156,72 +156,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/chats", authenticate, async (req: AuthenticatedRequest, res) => {
     try {
-      console.log("Creating chat with data:", req.body);
+      const chatData = insertChatSchema.parse(req.body);
+      chatData.createdBy = req.userId!;
       
-      const chatData = {
-        name: req.body.name,
-        description: req.body.description || null,
-        username: req.body.username || null,
-        type: req.body.type || "group",
-        createdBy: req.userId!,
-        isPublic: req.body.type === "channel" || Boolean(req.body.username)
-      };
-
-      // For private chats, check if chat already exists
-      if (chatData.type === "private" && req.body.participants) {
-        const participants = [req.userId!, ...req.body.participants];
-        const existingChats = await storage.getUserChats(req.userId!);
-
-        for (const existingChat of existingChats) {
-          if (existingChat.type === "private") {
-            const chatMembers = await storage.getChatMembers(existingChat.id);
-            const memberIds = chatMembers.map(m => m.userId).sort();
-            if (JSON.stringify(memberIds) === JSON.stringify(participants.sort())) {
-              return res.json(existingChat);
-            }
-          }
-        }
-      }
-
-      // Check for username uniqueness if provided
-      if (chatData.username && chatData.username.trim()) {
-        try {
-          const existingChatWithUsername = await storage.getChatByUsername(chatData.username.trim());
-          if (existingChatWithUsername) {
-            return res.status(400).json({ message: "Username already taken" });
-          }
-        } catch (error) {
-          // If method doesn't exist, continue
-          console.log("getChatByUsername method not implemented, skipping check");
-        }
-      }
-
-      console.log("Creating chat with validated data:", chatData);
       const chat = await storage.createChat(chatData);
-      console.log("Chat created:", chat);
-
+      
       // Add creator as admin
       await storage.addChatMember(chat.id, req.userId!, "admin");
-      console.log("Creator added as admin");
-
-      // Add other participants for private chats
-      if (chatData.type === "private" && req.body.participants) {
-        for (const participantId of req.body.participants) {
-          await storage.addChatMember(chat.id, participantId, "member");
-        }
-      }
-
+      
       res.json(chat);
     } catch (error) {
-      console.error("Error creating chat:", error);
-      res.status(400).json({ message: "Failed to create chat", error: error.message });
+      res.status(400).json({ message: "Failed to create chat" });
     }
   });
 
   app.get("/api/chats/:id", authenticate, async (req: AuthenticatedRequest, res) => {
     const chatId = parseInt(req.params.id);
     const chat = await storage.getChat(chatId);
-
+    
     if (!chat) {
       return res.status(404).json({ message: "Chat not found" });
     }
@@ -239,7 +191,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const chatId = parseInt(req.params.id);
       const { userId, role = "member" } = req.body;
-
+      
       // Check if requester is admin
       const requesterMembership = await storage.getUserChatMembership(chatId, req.userId!);
       if (!requesterMembership || requesterMembership.role !== "admin") {
@@ -272,26 +224,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/chats/:id/messages", authenticate, async (req: AuthenticatedRequest, res) => {
     try {
       const chatId = parseInt(req.params.id);
-
+      
       // Check if user is member
       const membership = await storage.getUserChatMembership(chatId, req.userId!);
       if (!membership) {
         return res.status(403).json({ message: "Access denied" });
       }
 
-      const { content, messageType = "text" } = req.body;
-      
-      if (!content || !content.trim()) {
-        return res.status(400).json({ message: "Message content is required" });
-      }
-
+      const messageData = insertMessageSchema.parse(req.body);
       const message = await storage.createMessage({
-        content: content.trim(),
+        content: messageData.content,
         chatId,
         senderId: req.userId!,
-        messageType
-      });
-
+        messageType: messageData.messageType || "text"
+      } as any);
+      
       // Broadcast message to WebSocket connections
       const chatMembers = await storage.getChatMembers(chatId);
       chatMembers.forEach(member => {
@@ -321,9 +268,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const callData = insertCallSchema.parse(req.body);
       callData.callerId = req.userId!;
-
+      
       const call = await storage.createCall(callData);
-
+      
       // Notify receiver via WebSocket
       const receiverWs = wsConnections.get(callData.receiverId);
       if (receiverWs && receiverWs.readyState === WebSocket.OPEN) {
@@ -343,7 +290,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const callId = parseInt(req.params.id);
       const updates = req.body;
-
+      
       const call = await storage.updateCall(callId, updates);
       res.json(call);
     } catch (error) {
@@ -374,7 +321,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   wss.on('connection', (ws, req) => {
     const url = new URL(req.url!, `http://${req.headers.host}`);
     const sessionId = url.searchParams.get('sessionId');
-
+    
     if (!sessionId) {
       ws.close();
       return;
@@ -387,7 +334,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     wsConnections.set(userId, ws);
-
+    
     ws.on('close', () => {
       wsConnections.delete(userId);
     });
@@ -395,7 +342,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     ws.on('message', async (data) => {
       try {
         const message = JSON.parse(data.toString());
-
+        
         switch (message.type) {
           case 'typing':
             // Broadcast typing indicator

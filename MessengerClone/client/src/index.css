@@ -4,175 +4,148 @@
 
 :root {
   --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
-  --card: 0 0% 100%;
-  --card-foreground: 222.2 84% 4.9%;
+  --foreground: 222 84% 4.9%;
+  --muted: 210 40% 98%;
+  --muted-foreground: 215 16% 46.9%;
   --popover: 0 0% 100%;
-  --popover-foreground: 222.2 84% 4.9%;
-  --primary: 222.2 47.4% 11.2%;
-  --primary-foreground: 210 40% 98%;
-  --secondary: 210 40% 96%;
-  --secondary-foreground: 222.2 84% 4.9%;
-  --muted: 210 40% 96%;
-  --muted-foreground: 215.4 16.3% 46.9%;
-  --accent: 210 40% 96%;
-  --accent-foreground: 222.2 84% 4.9%;
-  --destructive: 0 84.2% 60.2%;
+  --popover-foreground: 222 84% 4.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 84% 4.9%;
+  --border: 214 32% 91%;
+  --input: 214 32% 91%;
+  --primary: 207 90% 54%;
+  --primary-foreground: 211 100% 99%;
+  --secondary: 210 40% 98%;
+  --secondary-foreground: 222 84% 4.9%;
+  --accent: 210 40% 98%;
+  --accent-foreground: 222 84% 4.9%;
+  --destructive: 0 84% 60%;
   --destructive-foreground: 210 40% 98%;
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 222.2 84% 4.9%;
-  --chart-1: 12 76% 61%;
-  --chart-2: 173 58% 39%;
-  --chart-3: 197 37% 24%;
-  --chart-4: 43 74% 66%;
-  --chart-5: 27 87% 67%;
+  --ring: 222 84% 4.9%;
   --radius: 0.5rem;
+  
+  /* Telegram specific colors */
+  --telegram-blue: 207 90% 54%;
+  --telegram-light-blue: 203 89% 68%;
+  --telegram-green: 142 76% 54%;
+  --telegram-gray: 210 17% 95%;
+  --telegram-dark-gray: 220 13% 18%;
 }
 
 .dark {
-  --background: 222.2 84% 4.9%;
+  --background: 222 84% 4.9%;
   --foreground: 210 40% 98%;
-  --card: 222.2 84% 4.9%;
-  --card-foreground: 210 40% 98%;
-  --popover: 222.2 84% 4.9%;
+  --muted: 217 32% 17%;
+  --muted-foreground: 215 20% 65%;
+  --popover: 222 84% 4.9%;
   --popover-foreground: 210 40% 98%;
-  --primary: 210 40% 98%;
-  --primary-foreground: 222.2 47.4% 11.2%;
-  --secondary: 217.2 32.6% 17.5%;
+  --card: 222 84% 4.9%;
+  --card-foreground: 210 40% 98%;
+  --border: 217 32% 17%;
+  --input: 217 32% 17%;
+  --primary: 207 90% 54%;
+  --primary-foreground: 211 100% 99%;
+  --secondary: 217 32% 17%;
   --secondary-foreground: 210 40% 98%;
-  --muted: 217.2 32.6% 17.5%;
-  --muted-foreground: 215 20.2% 65.1%;
-  --accent: 217.2 32.6% 17.5%;
+  --accent: 217 32% 17%;
   --accent-foreground: 210 40% 98%;
-  --destructive: 0 62.8% 30.6%;
+  --destructive: 0 62% 30%;
   --destructive-foreground: 210 40% 98%;
-  --border: 217.2 32.6% 17.5%;
-  --input: 217.2 32.6% 17.5%;
-  --ring: 212.7 26.8% 83.9%;
-  --chart-1: 220 70% 50%;
-  --chart-2: 160 60% 45%;
-  --chart-3: 30 80% 55%;
-  --chart-4: 280 65% 60%;
-  --chart-5: 340 75% 55%;
+  --ring: 212 72% 59%;
+  
+  /* Telegram dark theme */
+  --telegram-dark-gray: 220 13% 18%;
 }
 
-* {
-  border-color: hsl(var(--border));
-}
-
-body {
-  color: hsl(var(--foreground));
-  background: linear-gradient(135deg, #4ade80, #22c55e);
-  background-attachment: fixed;
-  font-feature-settings: "rlig" 1, "calt" 1;
-  min-height: 100vh;
-}
-
-/* Telegram-like green background pattern */
-.telegram-bg {
-  background: linear-gradient(135deg, #4ade80, #22c55e);
-  background-attachment: fixed;
-  min-height: 100vh;
-}
-
-.telegram-chat-bg {
-  background: #f0f0f0 url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23e8e8e8' fill-opacity='0.3'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-}
-
-.dark .telegram-chat-bg {
-  background: #2d3748 url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23374151' fill-opacity='0.2'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-}
-
-.telegram-blue {
-  background-color: #0088cc;
-}
-
-.telegram-light-blue {
-  background-color: #40a7e3;
-}
-
-.telegram-green {
-  background-color: #00c853;
-}
-
-.fade-in {
-  animation: fadeIn 0.3s ease-in-out;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.slide-in-left {
-  animation: slideInLeft 0.3s ease-out;
-}
-
-@keyframes slideInLeft {
-  from { opacity: 0; transform: translateX(-20px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-
-.chat-bubble-sent {
-  background: linear-gradient(135deg, #0088cc, #40a7e3);
-  border-radius: 18px 18px 4px 18px;
-}
-
-.chat-bubble-received {
-  background-color: #ffffff;
-  border-radius: 18px 18px 18px 4px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-}
-
-.dark .chat-bubble-received {
-  background-color: #2f3349;
-}
-
-.message-animation {
-  animation: messageSlide 0.2s ease-out;
-}
-
-@keyframes messageSlide {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* Fixed message input positioning */
-.message-input-container {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 50;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-top: 1px solid rgba(0, 0, 0, 0.1);
-  padding: 8px 16px;
-}
-
-.dark .message-input-container {
-  background: rgba(45, 55, 72, 0.95);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-@media (min-width: 640px) {
-  .message-input-container {
-    position: relative;
-    background: transparent;
-    backdrop-filter: none;
-    border-top: 1px solid hsl(var(--border));
-    z-index: auto;
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   }
 }
 
-/* Chat messages area with proper spacing for fixed input */
-.chat-messages-area {
-  padding-bottom: 80px;
-}
-
-@media (min-width: 640px) {
-  .chat-messages-area {
-    padding-bottom: 0;
+@layer utilities {
+  .telegram-blue {
+    background-color: hsl(var(--telegram-blue));
+  }
+  
+  .telegram-light-blue {
+    background-color: hsl(var(--telegram-light-blue));
+  }
+  
+  .telegram-green {
+    background-color: hsl(var(--telegram-green));
+  }
+  
+  .telegram-gray {
+    background-color: hsl(var(--telegram-gray));
+  }
+  
+  .telegram-dark-gray {
+    background-color: hsl(var(--telegram-dark-gray));
+  }
+  
+  .chat-bubble-sent {
+    background: linear-gradient(135deg, hsl(var(--telegram-blue)) 0%, hsl(var(--telegram-light-blue)) 100%);
+  }
+  
+  .chat-bubble-received {
+    background-color: hsl(var(--telegram-gray));
+  }
+  
+  .dark .chat-bubble-received {
+    background-color: hsl(var(--telegram-dark-gray));
+  }
+  
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .message-animation {
+    animation: messageSlide 0.2s ease-out;
+  }
+  
+  @keyframes messageSlide {
+    from { 
+      opacity: 0; 
+      transform: translateY(10px); 
+    }
+    to { 
+      opacity: 1; 
+      transform: translateY(0); 
+    }
+  }
+  
+  .fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  .slide-in-left {
+    animation: slideInLeft 0.3s ease-out;
+  }
+  
+  @keyframes slideInLeft {
+    from { 
+      opacity: 0; 
+      transform: translateX(-20px); 
+    }
+    to { 
+      opacity: 1; 
+      transform: translateX(0); 
+    }
   }
 }
